@@ -1,11 +1,10 @@
 // helper functions for response messages
-const tryCatchExceptions = (res, { message }) => {
-  return res.json({ status: 'Error', message });
+const tryCatchExceptions = (res, error) => {
+  const { httpStatusCode, message } = error;
+  return res.json({ status: httpStatusCode, message });
 };
 
 const success = (res, data) => {
-  res.set('Access-Control-Allow-Origin', '*'); // allow cors, updated 21/09/2020
-
   res.status(200).json({ status: 200, message: 'Operation successful', data });
 };
 

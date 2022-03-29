@@ -11,14 +11,10 @@ import { veryfyTokens } from '../middlewares/auth';
 
 const router = express.Router();
 router.get('/facilities', getFacilities);
-// router.get('/teis', CertifcateAttributesValidate, getTEIAttributes, searchTrackedEntityInstances);
+router.get('/teis', CertifcateAttributesValidate, getTEIAttributes, getTEIData);
 router.get('/teis/verify/:teiId', verifyCertificate);
 router.get('/teis/prints', veryfyTokens, getPrints);
-router.post('/login', login);
 router.post('/teis/prints', certificateStatus, postPrints);
-
-// feeback
-router.get('/teis', getTEIAttributes, getTEIData);
-
+router.post('/login', login);
 
 export default { router };

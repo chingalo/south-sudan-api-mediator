@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { auth } from '../utils/authConfig';
-import { getTEIDataURL } from '../Constants/apiURL';
+import { getTEIDataURL } from '../../commons/constants/vaccineCertURL';
 import { notFound, success, tryCatchExceptions } from './messages';
+import { auth } from '../../commons/utils/authConfig';
 
-const TEIData = async (teiId, res) => {
+const teiEnrollments = async (teiId, res) => {
   try {
     const urlTEI = getTEIDataURL(teiId);
     const response = await axios.get(urlTEI, {
@@ -12,12 +12,13 @@ const TEIData = async (teiId, res) => {
     if (!response) return notFound(res);
     const { attributes, enrollments } = response.data;
     if (!enrollments.length) return notFound(res);
+    let dataResponse;
     enrollments.map(
       ({ program, status, enrollmentStatus, events }, indexTei) => {
         // get users enrolled to only vaccine program
         if (program !== 'yDuAzyqYABS') return notFound(res);
         if (!events.length) return notFound(res);
-        const filteredEvents = events.map(
+        const filteredEvents = events.filter(
           (
             {
               status,
@@ -34,21 +35,22 @@ const TEIData = async (teiId, res) => {
             }
           },
         ); // end filter events
+
         if (!filteredEvents || filteredEvents.length === 0) {
           return notFound(res); // no events
         }
         // filtered results to sent to client
-        const data = {
+        dataResponse = {
           teiId,
           attributes,
           enrollments: filteredEvents,
         };
-        success(res, data);
       },
     );
+    success(res, dataResponse);
   } catch (error) {
     return tryCatchExceptions(res, error);
   }
 };
 
-export { TEIData };
+export { teiEnrollments };

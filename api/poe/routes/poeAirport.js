@@ -1,8 +1,8 @@
 import express from 'express';
 import {
-  getFacilities, getVisitor, postVistor, verifyVisitor
-} from '../controllers/poeAirport/poeAirport';
-import { checkVisitor } from '../middlewares/poe/poeAirport';
+  getFacilities, getVisitor, postVistor, verifyVisitor,
+} from '../controllers/poeAirport';
+import { checkVisitor } from '../middlewares/poeAirport';
 
 const router = express.Router();
 router.get('/facilities', getFacilities);

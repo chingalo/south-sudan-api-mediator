@@ -1,17 +1,19 @@
-import http from '../../utils/httpServices';
-import { auth } from '../../utils/authConfig';
+import http from '../../commons/utils/httpServices';
+import { auth } from '../../commons/utils/authConfig';
 import {
   notFound,
   somethingWrongErr,
   success,
   tryCatchExceptions,
-} from '../../helpers/poeMessages';
+} from '../helpers/poeMessages';
+import { getFacilitiesURL } from '../../commons/constants/commonEndpoint';
+import { getEventURL, postEventURL } from '../../commons/constants/poeAirport';
 
 // load OUs assigned to program
 const getFacilities = async (req, res) => {
   try {
-    const url =
-      'https://southsudanhis.org/covid19southsudan/api/programs/ArXGGyMgxL4/organisationUnits?fields=id~rename(value), name~rename(label), !level,!ancestors[id, name, level]';
+    const poeProgramId = 'ArXGGyMgxL4';
+    const url = getFacilitiesURL(poeProgramId); // EVENT PROGRAM POE AIR
     const results = await http.get(url, {
       auth,
     });
@@ -19,7 +21,6 @@ const getFacilities = async (req, res) => {
     const { organisationUnits } = results.data;
     return success(res, organisationUnits);
   } catch (error) {
-    console.log('dataa loading facilities error', error);
     somethingWrongErr(res);
   }
 };
@@ -28,13 +29,13 @@ const getFacilities = async (req, res) => {
 const getVisitor = async (req, res) => {
   try {
     const { visitorHistoryId } = req.data;
-    const url = `https://southsudanhis.org/covid19southsudan/api/events/${visitorHistoryId}`;
+    console.log(visitorHistoryId);
+    const url = getEventURL(visitorHistoryId);
     const results = await http.get(url, { auth });
     if (!results.data) return notFound(res);
     // get only the required data field to prepopulate on the UI
     let firstName, lastName, dateOfBirth, gender, email, phone;
-    const dataNeeded = results.data.dataValues.map(({ value, dataElement }) => {
-      console.log(value, dataElement);
+    results.data.dataValues.map(({ value, dataElement }) => {
       if (dataElement === 'YCHZU8pxHLI') return (firstName = value);
       if (dataElement === 'gms6oEPUk7D') return (lastName = value);
       if (dataElement === 'Pe3CHmZicqT') return (dateOfBirth = value);
@@ -42,19 +43,8 @@ const getVisitor = async (req, res) => {
       if (dataElement === 'hW9Gm4wqanx') return (email = value);
       if (dataElement === 'Cs1wQfbUHSV') return (phone = value);
     });
-    console.log(
-      'gotten visitor info',
-      firstName,
-      lastName,
-      dateOfBirth,
-      gender,
-      email,
-      phone
-    );
-
     success(res, { firstName, lastName, dateOfBirth, gender, email, phone });
   } catch (error) {
-    console.log('Error occured while getting visitor info', error);
     tryCatchExceptions(res, error);
   }
 };
@@ -62,7 +52,6 @@ const getVisitor = async (req, res) => {
 // post visitor data to DHIS2 events
 const postVistor = async (req, res) => {
   try {
-    console.log('posting visitor info after chhecking..');
     // get data
     const {
       firstName,
@@ -91,7 +80,6 @@ const postVistor = async (req, res) => {
       signsSymptoms,
       signsSymptomsSelected,
     } = req.body;
-    console.log('event date', arrivalDate);
     const dataValues = [
       { dataElement: 'YCHZU8pxHLI', value: firstName }, // firstName
       { dataElement: 'gms6oEPUk7D', value: lastName }, // last name
@@ -135,7 +123,6 @@ const postVistor = async (req, res) => {
     // signs and symptoms options selected
     if (signsSymptomsSelected.length !== 0) {
       signsSymptomsSelected.map(({ value: id, label }) => {
-        console.log('signs selected', id, label);
         return dataValues.push({ dataElement: id, value: 'true' });
       });
     } else {
@@ -151,15 +138,14 @@ const postVistor = async (req, res) => {
       dataValues,
     };
     // send data
-    const url = 'https://southsudanhis.org/covid19southsudan/api/events';
+    const url = postEventURL();
     const results = await http.post(url, data, { auth });
     if (!results) return somethingWrongErr(res);
-    const { httpStatusCode, message, response } = results.data;
+    const { httpStatusCode, response } = results.data;
     if (httpStatusCode !== 200) return somethingWrongErr(res);
     const { reference: visitorId } = response.importSummaries[0];
     success(res, visitorId);
   } catch (error) {
-    // error
     tryCatchExceptions(res, error);
   }
 };
@@ -168,7 +154,7 @@ const postVistor = async (req, res) => {
 const verifyVisitor = async (req, res) => {
   try {
     const { visitorId } = req.query;
-    const url = `https://southsudanhis.org/covid19southsudan/api/events/${visitorId}`;
+    const url = getEventURL(visitorId);
     const results = await http.get(url, { auth });
     if (!results.data) return notFound(res);
     const { orgUnit, orgUnitName, eventDate, dataValues } = results.data;
